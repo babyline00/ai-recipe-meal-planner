@@ -1,0 +1,41 @@
+// AI-Powered Recipe & Meal Planner — Prisma schema
+// SQLite is the local-first store. The weekly plan (21 slots) and shopping
+// list are serialised as JSON strings so we can rehydrate them in app code
+// without joining 21+ rows per plan.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id                 String   @id @default(cuid())
+  name               String   @default("default")
+  macroTargets       String   // JSON: { calories, protein, carbs, fat } per day
+  allergies          String   // JSON: Allergen[]
+  pantry             String   // JSON: PantryItem[]
+  weeklyBudgetCents  Int      @default(10000)
+  excludedCuisines   String   // JSON: Cuisine[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  plans WeeklyPlan[]
+}
+
+model WeeklyPlan {
+  id                String   @id @default(cuid())
+  profileId         String
+  profile           UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  weekStart         DateTime
+  slotsJson         String   // JSON: PlanSlot[] (21 slots, 7 days x 3 meals)
+  shoppingListJson  String   // JSON: ShoppingListItem[]
+  totalMacrosJson   String   // JSON: Macros (per-day average across the week)
+  totalCostCents    Int
+  createdAt         DateTime @default(now())
+
+  @@index([profileId])
+}
